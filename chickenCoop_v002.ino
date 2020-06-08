@@ -1,8 +1,5 @@
 #include "RTClib.h"
-#include <Time.h>
-#include <TimeLib.h>
 #include <TimeAlarms.h>
-//#include <TimeLord.h>
 
 RTC_DS3231 rtc;
 
@@ -38,6 +35,7 @@ uint32_t syncProvider()//function which sets up the RTC as the source of externa
 }
 
 void setup() {
+
   pinMode(pinDoorSensorPower, OUTPUT);
   digitalWrite(pinDoorSensorPower, HIGH); // door sensors activated
  
@@ -75,11 +73,21 @@ void setup() {
     Serial.println("RTC has set the system time");  
   setSyncInterval(600); // set the number of seconds between re-sync of time
 
-  Alarm.alarmOnce(22, 14, 00,  letsOpenTheDoor);
-  Alarm.alarmOnce(22, 15, 00, letsCloseTheDoor);
+  DateTime now = rtc.now();
+  ResetAlarmTimerTime(now.hour(), now.minute(), now.second());
+
+  Serial.print("Setting Alarm to ");
+  Serial.print(now.hour());
+  Serial.print(":");
+  Serial.print(now.minute()+1);
+  Serial.println();
+  Alarm.alarmOnce(now.hour(), now.minute()+1, 00,  letsOpenTheDoor);
+  Alarm.alarmOnce(now.hour(), now.minute()+2, 00, letsCloseTheDoor);
 
   printTime();
   digitalWrite(motorEnablePin, HIGH);
+
+
 
 }
 
@@ -162,7 +170,22 @@ void loop() {
    // send signals to LED lights
    showDoorStatusWithLEDs();
     
-//  Alarm.delay(10);
+   Alarm.delay(1);
+}
+
+void ResetAlarmTimerTime(byte hour, byte minute, byte second)
+{
+Serial.println("set alarm for resetting");
+_ResetAlarmTimerTime();
+Alarm.alarmRepeat(hour,minute,second, _ResetAlarmTimerTime);
+}
+
+// Function used by ResetAlarmTimerTime() to read the current time from the RTC and set the TimeAlarms internal clock to the current time
+void _ResetAlarmTimerTime()
+{
+DateTime now = rtc.now();
+setTime(now.hour(),now.minute(),now.second(),now.day(),now.month(),now.year()-2000);
+Serial.println("Timer was reset");
 }
 
 
@@ -227,4 +250,5 @@ void printTime(){
    Serial.print(now.minute(), DEC);
    Serial.print(':');
    Serial.println(now.second(), DEC);
+  
  }
